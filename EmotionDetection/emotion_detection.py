@@ -6,14 +6,56 @@ def emotion_detector(text_to_analyze):
     headers = {"grpc-metadata-mm-model-id": "emotion_aggregated-workflow_lang_en_stock"}
     my_obj = { "raw_document": { "text": text_to_analyze } }
 
-    response = requests.post(url, json = my_obj, headers = headers)
-    response_str = response.text
-    formatted_response = json.loads(response_str)
+    try:
+        # Send the POST request to the server
+        response = requests.post(url, json=my_obj, headers=headers)
 
-    emotion_obj = {}
-    for emotion, score in formatted_response['emotionPredictions'][0]['emotion'].items():
-        emotion_obj[emotion] = score
-    dominant_emotion = max(emotion_obj, key=emotion_obj.get)
-    emotion_obj["dominant_emotion"] = dominant_emotion
+        # Check if the response status code is OK (200)
+        if response.status_code == 200:
+            response_str = response.text
+            formatted_response = json.loads(response_str)
 
-    return emotion_obj
+            # Process the emotion prediction data
+            emotion_obj = {}
+            for emotion, score in formatted_response['emotionPredictions'][0]['emotion'].items():
+                emotion_obj[emotion] = score
+            
+            # Get the dominant emotion
+            dominant_emotion = max(emotion_obj, key=emotion_obj.get)
+            emotion_obj["dominant_emotion"] = dominant_emotion
+
+            return emotion_obj
+
+        elif response.status_code == 400:
+            # If the status code is 400, return a dictionary with None values
+            return {
+                "joy": None,
+                "anger": None,
+                "disgust": None,
+                "sadness": None,
+                "fear": None,
+                "dominant_emotion": None
+            }
+        else:
+            # If the status code is 500 or any other error, return a dictionary with None values
+            print(f"Error: Received status code {response.status_code}")
+            return {
+                "joy": None,
+                "anger": None,
+                "disgust": None,
+                "sadness": None,
+                "fear": None,
+                "dominant_emotion": None
+            }
+
+    except requests.exceptions.RequestException as e:
+        # Handle any network-related errors
+        print(f"Request failed: {e}")
+        return {
+            "joy": None,
+            "anger": None,
+            "disgust": None,
+            "sadness": None,
+            "fear": None,
+            "dominant_emotion": None
+        }
